@@ -96,8 +96,7 @@ function addCampaignsStyles() {
 
 /* Search terms panel - same style as products panel */
 #campaignsSearchTermsPanel {
-  width: 1250px;
-  max-width: 1250px;
+  flex: 1;
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -1768,77 +1767,1248 @@ productsPanel.innerHTML = `
 const searchTermsPanel = document.createElement('div');
 searchTermsPanel.id = 'campaignsSearchTermsPanel';
 searchTermsPanel.innerHTML = `
-<div class="campaign-analysis-container" id="campaignAnalysisContainerSearchTerms">
-  <div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
-    <div class="campaign-analysis-section-header">Efficiency</div>
-    <div class="efficiency-metrics-grid" id="efficiencyMetricsContentSearchTerms">
-      <!-- Will be populated dynamically -->
+<div class="campaign-analysis-container" id="campaignAnalysisContainerSearchTerms" style="display: none;">
+    <!-- Same analysis container structure as products panel -->
+<div class="campaign-analysis-section" id="campaignAnalysisEfficiencySearchTerms">
+      <div class="campaign-analysis-section-header">Efficiency</div>
+      <div class="efficiency-metrics-grid" id="efficiencyMetricsContentSearchTerms">
+        <!-- Will be populated dynamically -->
+      </div>
     </div>
-  </div>
-  <div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
-    <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
-      <span>Products</span>
+<div class="campaign-analysis-section" id="campaignAnalysisProductsSearchTerms">
+<div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+  <span>Products</span>
+  ${window.productsEfficiencyMetrics ? `
+    <div style="display: flex; gap: 6px;">
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}22;
+        border: 1px solid ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('aa', window.productsEfficiencyMetrics.aa)};
+      ">
+        AA:${window.productsEfficiencyMetrics.aa.toFixed(2)}
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}22;
+        border: 1px solid ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('wr', window.productsEfficiencyMetrics.wr)};
+      ">
+        WR:${(window.productsEfficiencyMetrics.wr * 100).toFixed(0)}%
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}22;
+        border: 1px solid ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('tm', window.productsEfficiencyMetrics.tm)};
+      ">
+        TM:${(window.productsEfficiencyMetrics.tm * 100).toFixed(0)}%
+      </div>
     </div>
-    <div class="campaign-searches-content" id="campaignProductsContentSearchTerms">
-      <!-- Will be populated dynamically -->
-    </div>
-  </div>
-  <div class="campaign-analysis-section" id="campaignAnalysisSearchesSearchTerms">
-    <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
-      <span>Searches</span>
-    </div>
-    <div class="campaign-searches-content" id="campaignSearchesContentSearchTerms">
-      <!-- Will be populated dynamically -->
-    </div>
-  </div>
+  ` : ''}
 </div>
-
-<div class="campaigns-search-terms-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-    <div class="campaigns-header-title-section" style="display: flex; align-items: center; gap: 20px;">
+      <div class="campaign-searches-content" id="campaignProductsContentSearchTerms">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+    <div class="campaign-analysis-section" id="campaignAnalysisSearchesSearchTerms">
+      <div class="campaign-analysis-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+  <span>Searches</span>
+  ${window.searchesEfficiencyMetrics ? `
+    <div style="display: flex; gap: 6px;">
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}22;
+        border: 1px solid ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('aa', window.searchesEfficiencyMetrics.aa)};
+      ">
+        AA:${window.searchesEfficiencyMetrics.aa.toFixed(2)}
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}22;
+        border: 1px solid ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('wr', window.searchesEfficiencyMetrics.wr)};
+      ">
+        WR:${(window.searchesEfficiencyMetrics.wr * 100).toFixed(0)}%
+      </div>
+      <div style="
+        padding: 2px 6px;
+        background: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}22;
+        border: 1px solid ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)}44;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        color: ${getMetricStatusColor('tm', window.searchesEfficiencyMetrics.tm)};
+      ">
+        TM:${(window.searchesEfficiencyMetrics.tm * 100).toFixed(0)}%
+      </div>
+    </div>
+  ` : ''}
+</div>
+      <div class="campaign-searches-content" id="campaignSearchesContentSearchTerms">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+  </div>
+  <div class="campaigns-search-terms-header" style="padding: 15px 20px; flex-direction: column; gap: 12px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
       <div>
         <h3 class="campaigns-products-title">Campaign Search Terms</h3>
         <div class="selected-campaign-info">Select a campaign to view its search terms</div>
       </div>
-      <!-- Advanced Mode Toggle - Same as Products Panel -->
-      <div class="advanced-mode-toggle" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #f0f2f5; border-radius: 6px;">
-        <span style="font-size: 12px; color: #666; font-weight: 500;">Advanced mode</span>
-        <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-          <input type="checkbox" id="advancedModeToggleSearchTerms" style="opacity: 0; width: 0; height: 0;">
-          <span class="toggle-slider" style="
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .3s;
-            border-radius: 24px;
-          "></span>
-        </label>
+      <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
+        <span>📅</span>
+        <span>${dateRangeText}</span>
       </div>
     </div>
-    <div style="padding: 6px 12px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px;">
-      <span>📅</span>
-      <span>${dateRangeText}</span>
+    <div id="campaignBucketFilterContainer" style="display: none; width: 100%; padding: 15px 0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
+        <!-- All Terms -->
+        <div class="bucket-card" data-bucket="all" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+<div style="background: #007aff; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
     </div>
+  </div>
+</div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">All Search</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
+          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
   </div>
   
-  <div id="campaignBucketFilterContainerSearchTerms" style="display: none; width: 100%; padding: 15px 0;">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
-      <!-- Bucket filter cards will be populated dynamically -->
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
+        </div>
+        <!-- Top Search Terms -->
+        <div class="bucket-card" data-bucket="Top Search Terms" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+<div style="background: #FFC107; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
     </div>
   </div>
 </div>
-
-<div class="campaigns-search-terms-table-container">
-  <div class="campaigns-empty-state">
-    <div class="campaigns-empty-icon">🔍</div>
-    <div class="campaigns-empty-title">No Campaign Selected</div>
-    <div class="campaigns-empty-text">Select a campaign from the left panel to view its search terms</div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Top Search</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
+          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
   </div>
 </div>
+        </div>
+        <!-- Zero Converting Terms -->
+        <div class="bucket-card" data-bucket="Zero Converting Terms" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+<div style="background: #F44336; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Zero Converting</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
+          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
+        </div>
+        <!-- High Revenue Terms -->
+        <div class="bucket-card" data-bucket="High Revenue Terms" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+<div style="background: #4CAF50; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">High Revenue</div>
+                <div style="font-size: 13px; color: #333;">Terms</div>
+              </div>
+            </div>
+          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
+        </div>
+        <!-- Hidden Gems -->
+        <div class="bucket-card" data-bucket="Hidden Gems" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+<div style="background: #2196F3; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Hidden</div>
+                <div style="font-size: 13px; color: #333;">Gems</div>
+              </div>
+            </div>
+          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
+        </div>
+        <!-- Low Performance -->
+        <div class="bucket-card" data-bucket="Low Performance" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+<div style="background: #9E9E9E; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Low</div>
+                <div style="font-size: 13px; color: #333;">Performance</div>
+              </div>
+            </div>
+          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
+        </div>
+        <!-- Mid-Performance -->
+        <div class="bucket-card" data-bucket="Mid-Performance" style="cursor: pointer;">
+          <div class="bucket-box" style="display: flex; height: 60px; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid transparent;">
+<div style="background: #FF9800; color: white; width: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; flex-direction: column; padding: 8px 4px; gap: 4px;">
+  <div class="bucket-count" style="font-size: 24px; font-weight: 700; line-height: 1;">0</div>
+  <div class="bucket-coverage-container" style="width: 100%; display: none;">
+    <div style="
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 7px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="bucket-coverage-bar" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: rgba(255,255,255,0.8);
+        transition: width 0.3s ease;
+      "></div>
+      <div class="bucket-coverage-text" style="
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        z-index: 1;
+      ">0%</div>
+    </div>
+  </div>
+</div>
+            <div style="background: white; flex: 1; display: flex; align-items: center; padding: 0 15px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 600; color: #333;">Mid</div>
+                <div style="font-size: 13px; color: #333;">Performance</div>
+              </div>
+            </div>
+          </div>
+<div class="bucket-metrics" style="
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px;
+">
+  <!-- % of Clicks Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="clicks-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #1e40af;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="clicks-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="clicks-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- % of Revenue Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="revenue-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #059669;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="revenue-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">0%</div>
+    </div>
+    <div class="revenue-trend" style="width: 32px;"></div>
+  </div>
+  
+  <!-- Value Bar -->
+  <div style="display: flex; align-items: center; gap: 6px;">
+    <div style="
+      flex: 1;
+      height: 16px;
+      background: #e5e7eb;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div class="value-bar-fill" style="
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0%;
+        background: #f59e0b;
+        transition: width 0.3s ease;
+      "></div>
+      <div class="value-bar-text" style="
+        position: absolute;
+        left: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        font-weight: 600;
+        color: #374151;
+        z-index: 1;
+      ">$0</div>
+    </div>
+    <div class="value-trend" style="width: 32px;"></div>
+  </div>
+</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- REPLACE THE LEGEND SECTION WITH THIS -->
+<div style="
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  padding: 8px 15px;
+  background: #f9fafb;
+  border-radius: 6px;
+">
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #1e40af; border-radius: 2px;"></div>
+    % of Clicks
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #059669; border-radius: 2px;"></div>
+    % of Revenue
+  </div>
+  <div style="
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  ">
+    <div style="width: 8px; height: 8px; background: #f59e0b; border-radius: 2px;"></div>
+    Value
+  </div>
+</div>
+<!-- END OF LEGEND SECTION -->
+</div>
+  
+  <div class="campaigns-search-terms-table-container">
+    <div class="campaigns-empty-state">
+      <div class="campaigns-empty-icon">🔍</div>
+      <div class="campaigns-empty-title">No Campaign Selected</div>
+      <div class="campaigns-empty-text">Select a campaign from the left panel to view its search terms</div>
+    </div>
+  </div>
 `;
 
 // Add both panels to container <--- ALSO ADD THIS
@@ -3229,60 +4399,12 @@ populateSearchesAnalysis(bucketStats);
     `;
     headerInfo.textContent = `${campaignName} - Error loading search terms`;
   }
-// Populate analysis containers for search terms panel
-  if (window.selectedCampaign) {
-    // Show the analysis container
-    const analysisContainer = document.getElementById('campaignAnalysisContainerSearchTerms');
-    if (analysisContainer) {
-      analysisContainer.style.display = 'flex';
-    }
-    
-    // Populate efficiency metrics
-    if (window.selectedCampaign.efficiency) {
-      const efficiencyContent = document.getElementById('efficiencyMetricsContentSearchTerms');
-      const productsContent = document.getElementById('campaignProductsContentSearchTerms');
-      const searchesContent = document.getElementById('campaignSearchesContentSearchTerms');
-      
-      if (efficiencyContent && window.currentEfficiencyScore) {
-        populateEfficiencyMetrics(window.selectedCampaign.efficiency, 'SearchTerms');
-      }
-      
-      if (productsContent && window.campaignProductsOriginalData) {
-        const productBucketStats = calculateProductBucketStatistics(window.campaignProductsOriginalData);
-        populateProductsAnalysisInContainer(productBucketStats, 'SearchTerms');
-      }
-      
-      if (searchesContent) {
-        // Load search terms data for analysis
-        await loadCampaignSearchTermsForAnalysis(channelType, campaignName);
-      }
-    }
-  }
-  
   // Check if advanced mode is on and show advanced elements
-  const toggleElement = document.getElementById('advancedModeToggle') || 
-                        document.getElementById('advancedModeToggleSearchTerms');
-  if (toggleElement && toggleElement.checked) {
-    document.querySelectorAll('.advanced-mode-element').forEach(element => {
-      element.style.display = '';
-      element.style.opacity = '1';
-    });
-    document.querySelectorAll('.campaign-analysis-container').forEach(container => {
-      container.classList.add('advanced-mode-active');
-    });
-  }
-}
-  
-  // Check if advanced mode is on and show advanced elements
-  const advancedModeToggle = document.getElementById('advancedModeToggle') || 
-                             document.getElementById('advancedModeToggleSearchTerms');
+  const advancedModeToggle = document.getElementById('advancedModeToggle');
   if (advancedModeToggle && advancedModeToggle.checked) {
     document.querySelectorAll('.advanced-mode-element').forEach(element => {
       element.style.display = '';
       element.style.opacity = '1';
-    });
-    document.querySelectorAll('.campaign-analysis-container').forEach(container => {
-      container.classList.add('advanced-mode-active');
     });
   }
 }
@@ -6013,194 +7135,6 @@ function populateProductsAnalysis(bucketStats) {
 
 }
 
-// Populate products analysis in a specific container
-function populateProductsAnalysisInContainer(bucketStats, containerSuffix = '') {
-  const contentDiv = document.getElementById(`campaignProductsContent${containerSuffix}`);
-  if (!contentDiv) return;
-  
-  // Use the same logic as populateProductsAnalysis but target the specific container
-  const allStats = bucketStats['all'] || { count: 0, cost: 0, revenue: 0, clicks: 0 };
-  
-  // Create HTML content (same as original function)
-  let html = '';
-  
-  // Positive intent group
-  const positiveGroup = {
-    title: 'Positive Intent',
-    color: '#22c55e',
-    buckets: [
-      { key: 'Revenue Stars', shortName: 'Stars', color: '#FFD700' },
-      { key: 'Best Sellers', shortName: 'Sellers', color: '#9333ea' },
-      { key: 'Volume Leaders', shortName: 'Volume', color: '#3b82f6' },
-      { key: 'Proven Niche', shortName: 'Niche', color: '#10b981' }
-    ]
-  };
-  
-  // Negative intent group
-  const negativeGroup = {
-    title: 'Negative Intent',
-    color: '#ef4444',
-    buckets: [
-      { key: 'Low Converters', shortName: 'Low Conv', color: '#f97316' },
-      { key: 'Money Drains', shortName: 'Drains', color: '#dc2626' },
-      { key: 'Poor Performers', shortName: 'Poor', color: '#991b1b' }
-    ]
-  };
-  
-  // Calculate totals for each group
-  const positiveTotals = { count: 0, cost: 0, revenue: 0, clicks: 0, roas: 0, costPercent: 0, revenuePercent: 0 };
-  const negativeTotals = { count: 0, cost: 0, revenue: 0, clicks: 0, roas: 0, costPercent: 0, revenuePercent: 0 };
-  
-  positiveGroup.buckets.forEach(bucket => {
-    const stats = bucketStats[bucket.key] || { count: 0, cost: 0, revenue: 0, clicks: 0 };
-    positiveTotals.count += stats.count;
-    positiveTotals.cost += stats.cost;
-    positiveTotals.revenue += stats.revenue;
-    positiveTotals.clicks += stats.clicks;
-  });
-  
-  negativeGroup.buckets.forEach(bucket => {
-    const stats = bucketStats[bucket.key] || { count: 0, cost: 0, revenue: 0, clicks: 0 };
-    negativeTotals.count += stats.count;
-    negativeTotals.cost += stats.cost;
-    negativeTotals.revenue += stats.revenue;
-    negativeTotals.clicks += stats.clicks;
-  });
-  
-  positiveTotals.roas = positiveTotals.cost > 0 ? positiveTotals.revenue / positiveTotals.cost : 0;
-  negativeTotals.roas = negativeTotals.cost > 0 ? negativeTotals.revenue / negativeTotals.cost : 0;
-  positiveTotals.costPercent = allStats.cost > 0 ? (positiveTotals.cost / allStats.cost * 100) : 0;
-  positiveTotals.revenuePercent = allStats.revenue > 0 ? (positiveTotals.revenue / allStats.revenue * 100) : 0;
-  negativeTotals.costPercent = allStats.cost > 0 ? (negativeTotals.cost / allStats.cost * 100) : 0;
-  negativeTotals.revenuePercent = allStats.revenue > 0 ? (negativeTotals.revenue / allStats.revenue * 100) : 0;
-  
-  // Render positive group summary
-  html += `
-    <div class="campaign-search-bucket-row" style="background: rgba(220, 252, 231, 0.3); border-left: 3px solid ${positiveGroup.color};">
-      <div class="campaign-search-bucket-count" style="background: ${positiveGroup.color};">
-        ${positiveTotals.count}
-      </div>
-      <div class="campaign-search-bucket-name" style="width: 70px; font-weight: 700;">
-        ${positiveGroup.title}
-      </div>
-      <div style="flex: 0.8; height: 16px; background: rgba(220, 38, 38, 0.2); border-radius: 3px; position: relative; overflow: hidden; margin-right: 4px;">
-        <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(positiveTotals.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
-        <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: 600; color: ${positiveTotals.costPercent > 25 ? 'white' : '#374151'}; z-index: 1;">
-          ${positiveTotals.costPercent.toFixed(0)}%
-        </div>
-      </div>
-      <div style="flex: 0.8; height: 16px; background: rgba(5, 150, 105, 0.2); border-radius: 3px; position: relative; overflow: hidden;">
-        <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(positiveTotals.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
-        <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: 600; color: ${positiveTotals.revenuePercent > 25 ? 'white' : '#374151'}; z-index: 1;">
-          ${positiveTotals.revenuePercent.toFixed(0)}%
-        </div>
-      </div>
-      <div style="width: 45px; text-align: center; font-size: 11px; font-weight: 700; color: #22c55e; background: rgba(34, 197, 94, 0.15); padding: 2px 4px; border-radius: 4px; border: 1px solid rgba(34, 197, 94, 0.3);">
-        ${positiveTotals.roas.toFixed(1)}x
-      </div>
-    </div>
-  `;
-  
-  // Render positive bucket details
-  positiveGroup.buckets.forEach(bucket => {
-    const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
-    let roasColor = '#F44336';
-    if (stats.roas >= 4) roasColor = '#4CAF50';
-    else if (stats.roas >= 2) roasColor = '#FFC107';
-    else if (stats.roas >= 1) roasColor = '#FF9800';
-    
-    html += `
-      <div class="campaign-search-bucket-row campaign-product-detail-row advanced-mode-element" style="display: none; padding-left: 20px; background: rgba(220, 252, 231, 0.1);">
-        <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-          ${stats.count}
-        </div>
-        <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
-          ${bucket.shortName}
-        </div>
-        <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
-          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${stats.costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-            ${stats.costPercent.toFixed(0)}%
-          </div>
-        </div>
-        <div class="campaign-search-bucket-bar" style="flex: 0.8;">
-          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${stats.revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-            ${stats.revenuePercent.toFixed(0)}%
-          </div>
-        </div>
-        <div class="campaign-roas-value" style="width: 45px; text-align: center; font-size: 11px; font-weight: 700; color: ${stats.count > 0 ? roasColor : '#9E9E9E'}; background: ${stats.count > 0 ? roasColor + '15' : '#F5F5F5'}; padding: 2px 4px; border-radius: 4px; border: 1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'};">
-          ${stats.count > 0 ? stats.roas.toFixed(1) + 'x' : '-'}
-        </div>
-      </div>
-    `;
-  });
-  
-  // Render negative group summary
-  html += `
-    <div class="campaign-search-bucket-row" style="background: rgba(254, 226, 226, 0.3); border-left: 3px solid ${negativeGroup.color}; margin-top: 8px;">
-      <div class="campaign-search-bucket-count" style="background: ${negativeGroup.color};">
-        ${negativeTotals.count}
-      </div>
-      <div class="campaign-search-bucket-name" style="width: 70px; font-weight: 700;">
-        ${negativeGroup.title}
-      </div>
-      <div style="flex: 0.8; height: 16px; background: rgba(220, 38, 38, 0.2); border-radius: 3px; position: relative; overflow: hidden; margin-right: 4px;">
-        <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(negativeTotals.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
-        <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: 600; color: ${negativeTotals.costPercent > 25 ? 'white' : '#374151'}; z-index: 1;">
-          ${negativeTotals.costPercent.toFixed(0)}%
-        </div>
-      </div>
-      <div style="flex: 0.8; height: 16px; background: rgba(5, 150, 105, 0.2); border-radius: 3px; position: relative; overflow: hidden;">
-        <div style="position: absolute; left: 0; top: 0; height: 100%; width: ${Math.min(negativeTotals.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
-        <div style="position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: 600; color: ${negativeTotals.revenuePercent > 25 ? 'white' : '#374151'}; z-index: 1;">
-          ${negativeTotals.revenuePercent.toFixed(0)}%
-        </div>
-      </div>
-      <div style="width: 45px; text-align: center; font-size: 11px; font-weight: 700; color: ${negativeTotals.roas >= 1 ? '#FF9800' : '#ef4444'}; background: ${negativeTotals.roas >= 1 ? 'rgba(255, 152, 0, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; padding: 2px 4px; border-radius: 4px; border: 1px solid ${negativeTotals.roas >= 1 ? 'rgba(255, 152, 0, 0.3)' : 'rgba(239, 68, 68, 0.3)'};">
-        ${negativeTotals.roas.toFixed(1)}x
-      </div>
-    </div>
-  `;
-  
-  // Render negative bucket details
-  negativeGroup.buckets.forEach(bucket => {
-    const stats = bucketStats[bucket.key] || { count: 0, costPercent: 0, revenuePercent: 0, roas: 0 };
-    let roasColor = '#F44336';
-    if (stats.roas >= 4) roasColor = '#4CAF50';
-    else if (stats.roas >= 2) roasColor = '#FFC107';
-    else if (stats.roas >= 1) roasColor = '#FF9800';
-    
-    html += `
-      <div class="campaign-search-bucket-row campaign-product-detail-row advanced-mode-element" style="display: none; padding-left: 20px; background: rgba(254, 226, 226, 0.1);">
-        <div class="campaign-search-bucket-count" style="background: ${bucket.color};">
-          ${stats.count}
-        </div>
-        <div class="campaign-search-bucket-name" title="${bucket.key}" style="width: 70px;">
-          ${bucket.shortName}
-        </div>
-        <div class="campaign-search-bucket-bar" style="margin-right: 4px; flex: 0.8;">
-          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.costPercent, 100)}%; background: #dc2626; transition: width 0.3s ease;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${stats.costPercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-            ${stats.costPercent.toFixed(0)}%
-          </div>
-        </div>
-        <div class="campaign-search-bucket-bar" style="flex: 0.8;">
-          <div class="campaign-search-bucket-bar-fill" style="width: ${Math.min(stats.revenuePercent, 100)}%; background: #059669; transition: width 0.3s ease;"></div>
-          <div class="campaign-search-bucket-bar-text" style="${stats.revenuePercent > 25 ? 'color: white;' : ''}; font-size: 9px;">
-            ${stats.revenuePercent.toFixed(0)}%
-          </div>
-        </div>
-        <div class="campaign-roas-value" style="width: 45px; text-align: center; font-size: 11px; font-weight: 700; color: ${stats.count > 0 ? roasColor : '#9E9E9E'}; background: ${stats.count > 0 ? roasColor + '15' : '#F5F5F5'}; padding: 2px 4px; border-radius: 4px; border: 1px solid ${stats.count > 0 ? roasColor + '30' : '#E0E0E0'};">
-          ${stats.count > 0 ? stats.roas.toFixed(1) + 'x' : '-'}
-        </div>
-      </div>
-    `;
-  });
-  
-  contentDiv.innerHTML = html || '<div style="text-align: center; color: #999; font-size: 11px; padding: 10px;">No data available</div>';
-}
-
 // Check if table structure can be reused for animation
 function canReuseTableStructure(container, newDataLength) {
   const existingTable = container.querySelector('.camp-table-modern');
@@ -6912,12 +7846,11 @@ function renderEmptyCampaignsState() {
 // Advanced Mode Toggle Functionality
 function initializeAdvancedMode() {
   const toggle = document.getElementById('advancedModeToggle');
-  const toggleSearchTerms = document.getElementById('advancedModeToggleSearchTerms');
+  if (!toggle) return;
   
-  if (!toggle && !toggleSearchTerms) return;
-  
-  // Function to apply advanced mode state
-  const applyAdvancedMode = (isAdvanced) => {
+  toggle.addEventListener('change', function() {
+    const isAdvanced = this.checked;
+    
     // Get all advanced mode elements
     const advancedElements = document.querySelectorAll('.advanced-mode-element');
     
@@ -6953,47 +7886,18 @@ function initializeAdvancedMode() {
     
     // Store preference in localStorage
     localStorage.setItem('campaignsAdvancedMode', isAdvanced ? 'true' : 'false');
-  };
-  
-  // Sync both toggles
-  const syncToggles = (sourceToggle, targetToggle) => {
-    if (targetToggle) {
-      targetToggle.checked = sourceToggle.checked;
-    }
-  };
-  
-  // Add event listener to products toggle
-  if (toggle) {
-    toggle.addEventListener('change', function() {
-      const isAdvanced = this.checked;
-      applyAdvancedMode(isAdvanced);
-      syncToggles(this, toggleSearchTerms);
-    });
-  }
-  
-  // Add event listener to search terms toggle
-  if (toggleSearchTerms) {
-    toggleSearchTerms.addEventListener('change', function() {
-      const isAdvanced = this.checked;
-      applyAdvancedMode(isAdvanced);
-      syncToggles(this, toggle);
-    });
-  }
+  });
   
   // Restore saved preference
   const savedMode = localStorage.getItem('campaignsAdvancedMode');
   if (savedMode === 'true') {
-    if (toggle) toggle.checked = true;
-    if (toggleSearchTerms) toggleSearchTerms.checked = true;
-    applyAdvancedMode(true);
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
   } else {
     // Ensure advanced mode elements are hidden on initial load
     document.querySelectorAll('.advanced-mode-element').forEach(element => {
       element.style.display = 'none';
       element.style.opacity = '0';
-    });
-    document.querySelectorAll('.campaign-analysis-container').forEach(container => {
-      container.classList.remove('advanced-mode-active');
     });
   }
 }
