@@ -137,7 +137,7 @@ function addCampaignsStyles() {
       
       .campaigns-type-filter {
         display: flex;
-        gap: 8px;
+        gap: 3px;
         justify-content: center;
       }
       
